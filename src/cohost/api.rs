@@ -1,4 +1,6 @@
+use crate::cohost::types;
 use anyhow::Context;
+use serde::de::DeserializeOwned;
 use std::sync::Arc;
 
 use hyper::{
@@ -55,15 +57,16 @@ impl CohostApi {
             .build()
             .unwrap();
 
-        
         let mut builder = Request::builder()
             .uri(uri)
             .header(header::USER_AGENT, self.user_agent.clone());
 
         if let Some(token) = &self.token {
-            builder = builder.header(header::COOKIE, ["Cookie: connect.sid=", &token.as_ref()].join(""));
+            builder = builder.header(
+                header::COOKIE,
+                ["Cookie: connect.sid=", token.as_ref()].join(""),
+            );
         }
-        
 
         let request = builder.body(Body::empty())?;
 
@@ -75,5 +78,15 @@ impl CohostApi {
 
         serde_json::from_slice(&hyper::body::to_bytes(response.into_body()).await?)
             .context("Failed to parse response as JSON")
+    }
+
+    pub fn parse_response<T: DeserializeOwned>(value: Value) -> anyhow::Result<T> {
+        let response: types::Response =
+            serde_json::from_value(value).context("Failed to find valid success or error")?;
+        match response {
+            types::Response::Failure(error) => Err(error).context("Got error in cohost response"),
+            types::Response::Success(result) => serde_json::from_value(result.data)
+                .context("Unable to deserialize successful cohost response"),
+        }
     }
 }
