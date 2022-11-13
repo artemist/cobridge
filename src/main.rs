@@ -4,6 +4,8 @@ use std::error::Error;
 use std::sync::Arc;
 
 mod cohost;
+mod activitypub;
+mod webfinger;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
@@ -18,7 +20,7 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
             false,
             &json!({
                 "0": {
-                    "projectHandle": "staff",
+                    "projectHandle": "QuestForTori",
                     "page": 0,
                     "options": {
                         "hideReplies": false,
