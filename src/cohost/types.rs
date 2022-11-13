@@ -4,23 +4,32 @@ use std::fmt::Display;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
+/// A block containing markdown text, used as part of a [post](Post)
 pub struct MarkdownBlock {
+    /// Text, in markdown. Supports at least the features refernced on <https://cohost.org/rc/content/markdown-reference>
     pub content: Box<str>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
+/// An attachment used in a [post](Post), normally an image
 pub struct AttachmentBlock {
+    /// Alt text, used for screen readers. Empty if there is no alt text
     alt_text: Box<str>,
+    /// UUID of attachment
     attachment_id: Box<str>,
+    /// Url of the file, often something like
+    /// `https://staging.cohostcdn.org/attachment/<attachment_id>/<user-selected name>.png`
     #[serde(rename = "fileURL")]
     file_url: Box<str>,
+    /// URL of an image preview of the file, often the same as file_url
     #[serde(rename = "previewURL")]
     preview_url: Box<str>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type", rename_all = "camelCase")]
+/// The basic block used for making a post
 pub enum Block {
     Markdown { markdown: MarkdownBlock },
     Attachment { attachment: AttachmentBlock },
@@ -28,9 +37,13 @@ pub enum Block {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "lowercase")]
+/// Shape of the crop the client should use on the avatar
 pub enum AvatarShape {
+    /// A circle from the top to the bottom
     Circle,
+    /// Square with a 0.5rem border radius
     RoundRect,
+    /// A rounded rectangle with bulges on the sides
     Squircle,
     /// Secret 4th avatar shape
     Egg,
@@ -38,8 +51,11 @@ pub enum AvatarShape {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "lowercase")]
+/// Visibility of a project's posts
 pub enum Privacy {
+    /// Shown to all
     Public,
+    /// Shown only to approved followers
     Private,
 }
 
@@ -48,6 +64,7 @@ pub enum Privacy {
 pub struct Project {
     #[serde(rename = "avatarPreviewURL")]
     pub avatar_preview_url: Box<str>,
+    /// How to mask the avatar when shown
     pub avatar_shape: AvatarShape,
     #[serde(rename = "avatarURL")]
     pub avatar_url: Box<str>,
@@ -148,14 +165,24 @@ pub struct ProfilePostsData {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
+/// A basic container for a "result" field in a response
 pub struct Success {
+    /// Actual response as a JSON value. This may be any JSON object and is not parsed further
+    /// because it would require a brute force of types. Convert this into base types with another
+    /// deserialize or use the helper function
+    /// [CohostApi::parse_response](crate::CohostApi::parse_response) on the containing
+    /// [Response](Response) object.
     pub data: Value,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+/// One of the elements returned in the response of a TRPC request.
+/// Fields renamed to reduce confusion with Rust std types.
 pub enum Response {
+    /// Successfuly executed, internally called "result"
     #[serde(rename = "result")]
     Success(Success),
+    /// Failed to execute, internally called "error"
     #[serde(rename = "error")]
     Failure(CohostError),
 }
