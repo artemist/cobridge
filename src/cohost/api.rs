@@ -17,7 +17,7 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 #[derive(Clone, Debug)]
 pub struct CohostApi {
     user_agent: HeaderValue,
-    token: Option<Box<str>>,
+    token: Option<String>,
     http_client: Client<HttpsConnector<HttpConnector>>,
 }
 

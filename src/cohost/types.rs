@@ -7,7 +7,7 @@ use std::fmt::Display;
 /// A block containing markdown text, used as part of a [post](Post)
 pub struct MarkdownBlock {
     /// Text, in markdown. Supports at least the features refernced on <https://cohost.org/rc/content/markdown-reference>
-    pub content: Box<str>,
+    pub content: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -15,16 +15,16 @@ pub struct MarkdownBlock {
 /// An attachment used in a [post](Post), normally an image
 pub struct AttachmentBlock {
     /// Alt text, used for screen readers. Empty if there is no alt text
-    alt_text: Box<str>,
+    alt_text: String,
     /// UUID of attachment
-    attachment_id: Box<str>,
+    attachment_id: String,
     /// Url of the file, often something like
     /// `https://staging.cohostcdn.org/attachment/<attachment_id>/<user-selected name>.png`
     #[serde(rename = "fileURL")]
-    file_url: Box<str>,
+    file_url: String,
     /// URL of an image preview of the file, often the same as file_url
     #[serde(rename = "previewURL")]
-    preview_url: Box<str>,
+    preview_url: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -63,59 +63,59 @@ pub enum Privacy {
 #[serde(rename_all = "camelCase")]
 pub struct Project {
     #[serde(rename = "avatarPreviewURL")]
-    pub avatar_preview_url: Box<str>,
+    pub avatar_preview_url: String,
     /// How to mask the avatar when shown
     pub avatar_shape: AvatarShape,
     #[serde(rename = "avatarURL")]
-    pub avatar_url: Box<str>,
+    pub avatar_url: String,
     /// The project's headline, shown above pronouns, link, and description.
     /// Internally referred to as "dek"
     #[serde(rename = "dek")]
-    pub headline: Box<str>,
-    pub description: Box<str>,
-    pub display_name: Box<str>,
+    pub headline: String,
+    pub description: String,
+    pub display_name: String,
     pub flags: Value,
-    pub handle: Box<str>,
+    pub handle: String,
     #[serde(rename = "headerPreviewURL")]
-    pub header_preview_url: Option<Box<str>>,
+    pub header_preview_url: Option<String>,
     #[serde(rename = "headerURL")]
-    pub header_url: Option<Box<str>>,
+    pub header_url: Option<String>,
     pub privacy: Privacy,
     pub project_id: u64,
-    pub pronouns: Option<Box<str>>,
-    pub url: Box<str>,
+    pub pronouns: Option<String>,
+    pub url: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 /// a post, as returned by posts.profilePosts and others
 pub struct Post {
-    pub blocks: Box<[Block]>,
+    pub blocks: Vec<Block>,
     pub can_publish: bool,
     pub can_share: bool,
     pub contributor_block_incoming_or_outgoing: bool,
     /// Content warnings of the post
-    pub cws: Box<[Box<str>]>,
+    pub cws: Vec<String>,
     pub effective_adult_content: bool,
-    pub filename: Box<str>,
+    pub filename: String,
     pub has_any_contributor_muted: bool,
-    pub headline: Box<str>,
+    pub headline: String,
     pub is_editor: bool,
     pub is_liked: bool,
     pub num_comments: u64,
     pub num_shared_comments: u64,
     pub pinned: bool,
-    pub plain_text_body: Box<str>,
-    pub post_edit_url: Box<str>,
+    pub plain_text_body: String,
+    pub post_edit_url: String,
     pub post_id: u64,
     pub posting_project: Project,
-    pub published_at: Box<str>,
+    pub published_at: String,
     pub related_projects: Value,
     pub share_tree: Value,
-    pub single_post_page_url: Box<str>,
+    pub single_post_page_url: String,
     /// Probably means something but I'm not sure
     pub state: u64,
-    pub tags: Box<[Box<str>]>,
+    pub tags: Vec<String>,
     pub transparent_share_of_post_id: Value,
 }
 
@@ -130,10 +130,10 @@ pub struct Pagination {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ErrorData {
-    pub code: Box<str>,
+    pub code: String,
     pub http_status: u16,
-    pub path: Box<str>,
-    pub stack: Box<str>,
+    pub path: String,
+    pub stack: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -141,7 +141,7 @@ pub struct ErrorData {
 pub struct CohostError {
     pub code: i64,
     pub data: ErrorData,
-    pub message: Box<str>,
+    pub message: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -149,9 +149,9 @@ pub struct CohostError {
 pub struct LoggedInData {
     pub logged_in: bool,
     pub user_id: u64,
-    pub email: Box<str>,
+    pub email: String,
     pub project_id: u64,
-    pub project_handle: Box<str>,
+    pub project_handle: String,
     pub mod_mode: bool,
     pub activated: bool,
     pub read_only: bool,
@@ -160,7 +160,7 @@ pub struct LoggedInData {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ProfilePostsData {
     pub pagination: Pagination,
-    pub posts: Box<[Post]>,
+    pub posts: Vec<Post>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
