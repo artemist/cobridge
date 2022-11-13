@@ -1,10 +1,9 @@
 use anyhow::Context;
 use hyper::{header, Body, Request, Response, StatusCode};
-use log::debug;
-use serde_json::json;
+use log::info;
 use std::net::SocketAddr;
 
-use crate::cohost::CohostApi;
+use crate::cohost::{types, CohostApi};
 
 use super::webfinger::WebFinger;
 
@@ -47,42 +46,28 @@ async fn handle_webfinger(
         anyhow::bail!("incorrect domain");
     }
 
-    let mut trpc_response = state
+    let response = state
         .api
-        .make_trpc_request(
-            vec!["posts.profilePosts".to_string()],
-            true,
-            &json!({
-                "0": {
-                    "projectHandle": username,
-                    "page": 0,
-                    "options": {
-                        "hideReplies": false,
-                        "hideShares": false,
-                    },
-                },
-            }),
-        )
-        .await
-        .context("unable to query cohost")?;
+        .trpc_query_single::<_, types::ProfilePostsData>(&types::ProfilePostsInput {
+            project_handle: username.to_string(),
+            page: 0,
+            options: types::ProfilePostsInputOptions {
+                hide_replies: false,
+                hide_shares: false,
+            },
+        })
+        .await?
+        .context("failed to query cohost");
 
-    let first = trpc_response
-        .as_array_mut()
-        .and_then(|array| array.first_mut())
-        .ok_or(anyhow::anyhow!("invalid cohost response"))?;
-    match serde_json::from_value::<crate::cohost::types::Response>(first.take())
-        .context("unable to parse cohost response")?
-    {
-        crate::cohost::types::Response::Success(_) => {
-            let webfinger = WebFinger::with_cohost_handle(username, &state.domain);
-            Ok(Response::builder()
-                .status(StatusCode::OK)
-                .header(header::CONTENT_TYPE, "application/json")
-                .body(serde_json::to_string(&webfinger)?.into())
-                .unwrap())
-        }
-        crate::cohost::types::Response::Failure(_) => anyhow::bail!("no such user"),
+    if response.is_err() {
+        anyhow::bail!("no such user");
     }
+    let webfinger = WebFinger::with_cohost_handle(username, &state.domain);
+    Ok(Response::builder()
+        .status(StatusCode::OK)
+        .header(header::CONTENT_TYPE, "application/json")
+        .body(serde_json::to_string(&webfinger)?.into())
+        .unwrap())
 }
 
 pub async fn serve_inner(
@@ -90,7 +75,7 @@ pub async fn serve_inner(
     request: Request<Body>,
     state: &'static State,
 ) -> anyhow::Result<Response<Body>> {
-    debug!(
+    info!(
         "Got connection from {}: {} {}",
         remote_addr,
         request.method(),
@@ -112,7 +97,7 @@ pub async fn serve(
     match serve_inner(remote_addr, request, state).await {
         Ok(response) => response,
         Err(error) => {
-            debug!(
+            info!(
                 "Request failed, returning 404, backtrace: {}",
                 error
                     .chain()

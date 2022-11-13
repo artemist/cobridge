@@ -1,16 +1,15 @@
+use super::types::{CohostError, TrpcInput};
 use crate::cohost::types;
 use anyhow::Context;
-use log::debug;
-use serde::de::DeserializeOwned;
-
 use hyper::{
     client::HttpConnector,
     header::{self, HeaderValue},
     Body, Client, Request, Uri,
 };
 use hyper_rustls::{HttpsConnector, HttpsConnectorBuilder};
-
-use serde_json::Value;
+use log::info;
+use serde::{de::DeserializeOwned, Serialize};
+use serde_json::{json, Value};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -37,22 +36,22 @@ impl CohostApi {
         }
     }
 
-    pub async fn make_trpc_request(
+    pub async fn trpc_query(
         &self,
-        fields: Vec<String>,
+        queries: Vec<&str>,
         batch: bool,
-        request: &Value,
+        input: &Value,
     ) -> anyhow::Result<Value> {
-        debug!(
-            "Making TRPC request, fields: {:?}, batch: {}, input: {:#?}",
-            fields, batch, request
+        info!(
+            "Making TRPC request, queries: {:?}, batch: {}, input: {:#?}",
+            queries, batch, input
         );
 
         let path = format!(
             "/api/v1/trpc/{}?batch={}&input={}",
-            fields.join(","),
+            queries.join(","),
             batch as u32,
-            urlencoding::encode(&request.to_string())
+            urlencoding::encode(&input.to_string())
         );
 
         let uri = Uri::builder()
@@ -85,13 +84,33 @@ impl CohostApi {
             .context("Failed to parse response as JSON")
     }
 
-    pub fn parse_response<T: DeserializeOwned>(value: Value) -> anyhow::Result<T> {
-        let response: types::Response =
-            serde_json::from_value(value).context("Failed to find valid success or error")?;
-        match response {
-            types::Response::Failure(error) => Err(error).context("Got error in cohost response"),
-            types::Response::Success(result) => serde_json::from_value(result.data)
-                .context("Unable to deserialize successful cohost response"),
+    pub async fn trpc_query_single<Q: Serialize + TrpcInput, R: DeserializeOwned>(
+        &self,
+        input: &Q,
+    ) -> anyhow::Result<Result<R, CohostError>> {
+        let mut response_raw = self
+            .trpc_query(
+                vec![Q::query_name()],
+                true,
+                &json!({
+                    "0": serde_json::to_value(input).context("failed to serialize request")?
+                }),
+            )
+            .await?;
+
+        let response_0 = response_raw
+            .as_array_mut()
+            .and_then(|obj| obj.first_mut())
+            .ok_or(anyhow::anyhow!("no response given"))?;
+
+        match serde_json::from_value(response_0.take())
+            .context("failed to parse success or error")?
+        {
+            types::CohostResponse::Success(success) => Ok(Ok(serde_json::from_value::<R>(
+                success.data,
+            )
+            .context("failed to parse success")?)),
+            types::CohostResponse::Failure(failure) => Ok(Err(failure)),
         }
     }
 }

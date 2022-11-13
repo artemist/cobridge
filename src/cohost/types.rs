@@ -2,6 +2,11 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::fmt::Display;
 
+/// Input to a tRPC query with a defined query name
+pub trait TrpcInput {
+    fn query_name() -> &'static str;
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 /// A block containing markdown text, used as part of a [post](Post)
@@ -15,16 +20,16 @@ pub struct MarkdownBlock {
 /// An attachment used in a [post](Post), normally an image
 pub struct AttachmentBlock {
     /// Alt text, used for screen readers. Empty if there is no alt text
-    alt_text: String,
+    pub alt_text: String,
     /// UUID of attachment
-    attachment_id: String,
+    pub attachment_id: String,
     /// Url of the file, often something like
     /// `https://staging.cohostcdn.org/attachment/<attachment_id>/<user-selected name>.png`
     #[serde(rename = "fileURL")]
-    file_url: String,
+    pub file_url: String,
     /// URL of an image preview of the file, often the same as file_url
     #[serde(rename = "previewURL")]
-    preview_url: String,
+    pub preview_url: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -171,6 +176,27 @@ pub struct ProfilePostsData {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
+pub struct ProfilePostsInputOptions {
+    pub hide_replies: bool,
+    pub hide_shares: bool,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ProfilePostsInput {
+    pub project_handle: String,
+    pub page: u64,
+    pub options: ProfilePostsInputOptions,
+}
+
+impl TrpcInput for ProfilePostsInput {
+    fn query_name() -> &'static str {
+        "posts.profilePosts"
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 /// A basic container for a "result" field in a response
 pub struct Success {
     /// Actual response as a JSON value. This may be any JSON object and is not parsed further
@@ -184,7 +210,7 @@ pub struct Success {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 /// One of the elements returned in the response of a TRPC request.
 /// Fields renamed to reduce confusion with Rust std types.
-pub enum Response {
+pub enum CohostResponse {
     /// Successfuly executed, internally called "result"
     #[serde(rename = "result")]
     Success(Success),
