@@ -1,7 +1,7 @@
 use crate::cohost::types;
 use anyhow::Context;
+use log::debug;
 use serde::de::DeserializeOwned;
-use std::sync::Arc;
 
 use hyper::{
     client::HttpConnector,
@@ -22,7 +22,7 @@ pub struct CohostApi {
 }
 
 impl CohostApi {
-    pub fn new() -> Arc<Self> {
+    pub fn new() -> Self {
         let conn = HttpsConnectorBuilder::new()
             .with_native_roots()
             .https_only()
@@ -30,19 +30,24 @@ impl CohostApi {
             .enable_http2()
             .build();
 
-        Arc::new(Self {
+        Self {
             user_agent: HeaderValue::from_str(&format!("cobridge/{}", VERSION)).unwrap(),
             token: None,
             http_client: Client::builder().build(conn),
-        })
+        }
     }
 
     pub async fn make_trpc_request(
-        self: Arc<Self>,
-        fields: Arc<[String]>,
+        &self,
+        fields: Vec<String>,
         batch: bool,
         request: &Value,
     ) -> anyhow::Result<Value> {
+        debug!(
+            "Making TRPC request, fields: {:?}, batch: {}, input: {:#?}",
+            fields, batch, request
+        );
+
         let path = format!(
             "/api/v1/trpc/{}?batch={}&input={}",
             fields.join(","),

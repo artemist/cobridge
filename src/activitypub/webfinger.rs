@@ -36,8 +36,7 @@ impl WebFinger {
             aliases: vec![
                 format!("https://{}/users/{}", local_domain, cohost_handle),
                 format!("https://cohost.org/{}", cohost_handle),
-            ]
-            ,
+            ],
             links: vec![
                 Link {
                     rel: String::from("http://webfinger.net/rel/profile-page"),
@@ -48,14 +47,10 @@ impl WebFinger {
                 Link {
                     rel: String::from("self"),
                     mime_type: Some(String::from("application/activity+json")),
-                    href: Some(
-                        format!("https://{}/users/{}", local_domain, cohost_handle)
-                            ,
-                    ),
+                    href: Some(format!("https://{}/users/{}", local_domain, cohost_handle)),
                     template: None,
                 },
-            ]
-            ,
+            ],
         }
     }
 }

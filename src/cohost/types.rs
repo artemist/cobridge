@@ -45,8 +45,14 @@ pub enum AvatarShape {
     RoundRect,
     /// A rounded rectangle with bulges on the sides
     Squircle,
-    /// Secret 4th avatar shape
+    /// Avatar shape used on the [staff account](https://cohost.org/staff)
     Egg,
+    /// Appears to be unused but referenced in the code
+    #[serde(rename = "capsule-big")]
+    CapsuleBig,
+    /// Appears to be unused but referenced in the code
+    #[serde(rename = "capsule-small")]
+    CapsuleSmall,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -83,7 +89,7 @@ pub struct Project {
     pub privacy: Privacy,
     pub project_id: u64,
     pub pronouns: Option<String>,
-    pub url: String,
+    pub url: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
