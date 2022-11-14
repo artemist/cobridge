@@ -48,7 +48,7 @@ async fn handle_webfinger(
 
     let response = state
         .api
-        .trpc_query_single::<_, types::ProfilePostsData>(&types::ProfilePostsInput {
+        .trpc_query_single(&types::ProfilePostsInput {
             project_handle: username.to_string(),
             page: 0,
             options: types::ProfilePostsInputOptions {

@@ -4,6 +4,7 @@ use std::fmt::Display;
 
 /// Input to a tRPC query with a defined query name
 pub trait TrpcInput {
+    type Response;
     fn query_name() -> &'static str;
 }
 
@@ -190,6 +191,7 @@ pub struct ProfilePostsInput {
 }
 
 impl TrpcInput for ProfilePostsInput {
+    type Response = ProfilePostsData;
     fn query_name() -> &'static str {
         "posts.profilePosts"
     }

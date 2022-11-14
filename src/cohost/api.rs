@@ -84,10 +84,13 @@ impl CohostApi {
             .context("Failed to parse response as JSON")
     }
 
-    pub async fn trpc_query_single<Q: Serialize + TrpcInput, R: DeserializeOwned>(
+    pub async fn trpc_query_single<Q: Serialize + TrpcInput>(
         &self,
         input: &Q,
-    ) -> anyhow::Result<Result<R, CohostError>> {
+    ) -> anyhow::Result<Result<Q::Response, CohostError>>
+    where
+        Q::Response: DeserializeOwned,
+    {
         let mut response_raw = self
             .trpc_query(
                 vec![Q::query_name()],
@@ -106,10 +109,10 @@ impl CohostApi {
         match serde_json::from_value(response_0.take())
             .context("failed to parse success or error")?
         {
-            types::CohostResponse::Success(success) => Ok(Ok(serde_json::from_value::<R>(
-                success.data,
-            )
-            .context("failed to parse success")?)),
+            types::CohostResponse::Success(success) => {
+                Ok(Ok(serde_json::from_value::<Q::Response>(success.data)
+                    .context("failed to parse success")?))
+            }
             types::CohostResponse::Failure(failure) => Ok(Err(failure)),
         }
     }
