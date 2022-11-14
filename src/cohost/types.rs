@@ -1,10 +1,10 @@
-use serde::{Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::Value;
 use std::fmt::Display;
 
 /// Input to a tRPC query with a defined query name
 pub trait TrpcInput {
-    type Response;
+    type Response: DeserializeOwned;
     fn query_name() -> &'static str;
 }
 

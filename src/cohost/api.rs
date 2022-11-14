@@ -8,7 +8,7 @@ use hyper::{
 };
 use hyper_rustls::{HttpsConnector, HttpsConnectorBuilder};
 use log::info;
-use serde::{de::DeserializeOwned, Serialize};
+use serde::Serialize;
 use serde_json::{json, Value};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -87,10 +87,7 @@ impl CohostApi {
     pub async fn trpc_query_single<Q: Serialize + TrpcInput>(
         &self,
         input: &Q,
-    ) -> anyhow::Result<Result<Q::Response, CohostError>>
-    where
-        Q::Response: DeserializeOwned,
-    {
+    ) -> anyhow::Result<Result<Q::Response, CohostError>> {
         let mut response_raw = self
             .trpc_query(
                 vec![Q::query_name()],
