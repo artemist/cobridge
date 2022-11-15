@@ -87,25 +87,20 @@ pub async fn handle_webfinger(
         return Err(anyhow::anyhow!("incorrect domain").into());
     }
 
-    let response = state
+    let response_value = state
         .api
-        .trpc_query_single(&types::ProfilePostsInput {
-            project_handle: username.to_string(),
-            page: 0,
-            options: types::ProfilePostsInputOptions {
-                hide_replies: false,
-                hide_shares: false,
-            },
-        })
-        .await?
-        .context("failed to query cohost");
-
-    if response.is_err() {
-        return Err(ErrorWithStatus {
+        .query_loader_state(&format!("/{}", username))
+        .await?;
+    match serde_json::from_value::<types::ProjectPageViewLoaderState>(response_value)
+        .context("failed to parse cohost response")?
+    {
+        types::ProjectPageViewLoaderState::ProjectPageView(_) => {
+            Ok(Json(WebFinger::with_cohost_handle(username, &state.domain)))
+        }
+        types::ProjectPageViewLoaderState::Error(_) => Err(ErrorWithStatus {
             status: StatusCode::NOT_FOUND,
             message: "no such user".to_string(),
         }
-        .into());
+        .into()),
     }
-    Ok(Json(WebFinger::with_cohost_handle(username, &state.domain)))
 }

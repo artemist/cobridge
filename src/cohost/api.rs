@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use super::types::{CohostError, TrpcInput};
 use crate::cohost::types;
 use anyhow::Context;
@@ -7,6 +9,7 @@ use hyper::{
     Body, Client, Request, Uri,
 };
 use hyper_rustls::{HttpsConnector, HttpsConnectorBuilder};
+use scraper::Selector;
 use serde::Serialize;
 use serde_json::{json, Value};
 use tracing::info;
@@ -36,6 +39,20 @@ impl CohostApi {
         }
     }
 
+    fn request_base(&self, uri: Uri) -> http::request::Builder {
+        let mut builder = Request::builder()
+            .uri(uri)
+            .header(header::USER_AGENT, self.user_agent.clone());
+
+        if let Some(token) = &self.token {
+            builder = builder.header(
+                header::COOKIE,
+                ["Cookie: connect.sid=", token.as_ref()].join(""),
+            );
+        }
+        builder
+    }
+
     pub async fn trpc_query(
         &self,
         queries: Vec<&str>,
@@ -61,27 +78,16 @@ impl CohostApi {
             .build()
             .unwrap();
 
-        let mut builder = Request::builder()
-            .uri(uri)
-            .header(header::USER_AGENT, self.user_agent.clone());
-
-        if let Some(token) = &self.token {
-            builder = builder.header(
-                header::COOKIE,
-                ["Cookie: connect.sid=", token.as_ref()].join(""),
-            );
-        }
-
-        let request = builder.body(Body::empty())?;
+        let request = self.request_base(uri).body(Body::empty())?;
 
         let response = self
             .http_client
             .request(request)
             .await
-            .context("Failed to make RPC request")?;
+            .context("failed to make RPC request")?;
 
         serde_json::from_slice(&hyper::body::to_bytes(response.into_body()).await?)
-            .context("Failed to parse response as JSON")
+            .context("failed to parse response as JSON")
     }
 
     pub async fn trpc_query_single<Q: Serialize + TrpcInput>(
@@ -111,6 +117,47 @@ impl CohostApi {
                     .context("failed to parse success")?))
             }
             types::CohostResponse::Failure(failure) => Ok(Err(failure)),
+        }
+    }
+
+    pub async fn query_loader_state(&self, path_and_query: &str) -> anyhow::Result<Value> {
+        info!(
+            "querying loader state from html, path: https://cohost.org{}",
+            path_and_query
+        );
+
+        let uri = Uri::builder()
+            .scheme("https")
+            .authority("cohost.org")
+            .path_and_query(path_and_query)
+            .build()?;
+        let request = self
+            .request_base(uri)
+            .header(header::ACCEPT, "text/html")
+            .body(Body::empty())?;
+
+        let response = self
+            .http_client
+            .request(request)
+            .await
+            .context("failed to send request to cohost")?;
+
+        let document = scraper::Html::parse_document(
+            std::str::from_utf8(
+                &hyper::body::to_bytes(response.into_body())
+                    .await
+                    .context("unable to receive content from cohost")?,
+            )
+            .context("cohost returned invalid utf8")?,
+        );
+
+        let selector = Selector::parse("[id=__COHOST_LOADER_STATE__]").unwrap();
+
+        if let Some(node) = document.select(&selector).next() {
+            let text = node.text().collect::<Vec<&str>>().join("");
+            Ok(Value::from_str(&text)?)
+        } else {
+            Err(anyhow::anyhow!("no __COHOST_LOADER_STATE__ element"))
         }
     }
 }

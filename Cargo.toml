@@ -19,3 +19,5 @@ json-ld = "0.9.1-beta"
 axum = { version = "0.5.17", features = ["http2"] }
 tracing = "0.1"
 tracing-subscriber = "0.3"
+http = "0.2.8"
+scraper = "0.13.0"

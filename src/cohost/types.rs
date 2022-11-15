@@ -140,6 +140,53 @@ pub struct Pagination {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "kebab-case")]
+pub enum AccessPermission {
+    Allowed,
+    NotAllowed,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CanAccessPermissions {
+    pub can_read: AccessPermission,
+    pub can_interact: AccessPermission,
+    pub can_share: AccessPermission,
+    pub can_edit: AccessPermission,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectPageView {
+    pub project: Project,
+    pub page_handle: String,
+    pub can_access_permissions: CanAccessPermissions,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CohostLoaderError {
+    message: String,
+    error_code: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "kebab-case")]
+pub enum ProjectPageViewLoaderState {
+    ProjectPageView(ProjectPageView),
+    Error(CohostLoaderError),
+}
+
+impl From<ProjectPageViewLoaderState> for Result<ProjectPageView, CohostLoaderError> {
+    fn from(state: ProjectPageViewLoaderState) -> Self {
+        match state {
+            ProjectPageViewLoaderState::ProjectPageView(view) => Self::Ok(view),
+            ProjectPageViewLoaderState::Error(err) => Self::Err(err),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ErrorData {
     pub code: String,
