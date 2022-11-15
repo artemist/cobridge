@@ -2,11 +2,11 @@
 use axum::routing::get;
 use axum::{Extension, Router};
 use cohost::CohostApi;
-use log::info;
 use std::net::{IpAddr, SocketAddr};
 use std::str::FromStr;
 use std::sync::Arc;
 use structopt::StructOpt;
+use tracing::info;
 
 use crate::activitypub::server::State;
 use crate::activitypub::webfinger::handle_webfinger;
@@ -32,7 +32,7 @@ struct Options {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    env_logger::init();
+    tracing_subscriber::fmt::init();
     let options = Options::from_args();
 
     let socket_addr = SocketAddr::new(IpAddr::from_str(&options.bind_addr)?, options.port);

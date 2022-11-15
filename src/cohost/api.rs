@@ -7,9 +7,9 @@ use hyper::{
     Body, Client, Request, Uri,
 };
 use hyper_rustls::{HttpsConnector, HttpsConnectorBuilder};
-use log::info;
 use serde::Serialize;
 use serde_json::{json, Value};
+use tracing::info;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
