@@ -1,15 +1,15 @@
 #![allow(dead_code)]
+use axum::routing::get;
+use axum::{Extension, Router};
 use cohost::CohostApi;
-use hyper::server::conn::AddrStream;
-use hyper::service::{make_service_fn, service_fn};
-use hyper::{Body, Request, Server};
 use log::info;
-use std::convert::Infallible;
 use std::net::{IpAddr, SocketAddr};
 use std::str::FromStr;
+use std::sync::Arc;
 use structopt::StructOpt;
 
-use crate::activitypub::server::{serve, State};
+use crate::activitypub::server::State;
+use crate::activitypub::webfinger::handle_webfinger;
 
 mod activitypub;
 mod cohost;
@@ -41,23 +41,19 @@ async fn main() -> anyhow::Result<()> {
         socket_addr, &options.domain
     );
 
-    // This would be kept around until main exits anyway and Arc is a pain
-    let state: &'static State = Box::leak(Box::new(State {
+    let state = Arc::new(State {
         api: CohostApi::new(),
         domain: options.domain.clone(),
-    }));
-
-    let make_svc = make_service_fn(|socket: &AddrStream| {
-        let remote_addr = socket.remote_addr();
-        async move {
-            Ok::<_, Infallible>(service_fn(move |req: Request<Body>| async move {
-                Ok::<_, Infallible>(serve(remote_addr, req, state).await)
-            }))
-        }
     });
 
-    let server = Server::bind(&socket_addr).serve(make_svc);
+    let app = Router::new()
+        .route("/.well-known/webfinger", get(handle_webfinger))
+        .layer(Extension(state));
 
-    server.await.unwrap();
+    axum::Server::bind(&socket_addr)
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
+
     Ok(())
 }

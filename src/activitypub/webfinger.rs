@@ -1,4 +1,13 @@
+use super::{
+    error::{ErrorWithStatus, ResponseResult},
+    server::State,
+};
+use crate::cohost::types;
+use anyhow::Context;
+use axum::{extract::Query, Extension, Json};
+use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 
 /// Representation of a WebFinger response
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -53,4 +62,50 @@ impl WebFinger {
             ],
         }
     }
+}
+
+#[derive(Deserialize)]
+pub struct WebFingerQuery {
+    pub resource: String,
+}
+
+pub async fn handle_webfinger(
+    query: Query<WebFingerQuery>,
+    state: Extension<Arc<State>>,
+) -> ResponseResult<Json<WebFinger>> {
+    let (scheme, qualified_user) = query
+        .resource
+        .split_once(':')
+        .ok_or(anyhow::anyhow!("no scheme"))?;
+    if scheme != "acct" {
+        return Err(anyhow::anyhow!("incorrect scheme").into());
+    }
+    let (username, domain) = qualified_user
+        .split_once('@')
+        .ok_or(anyhow::anyhow!("no domain"))?;
+    if domain != state.domain {
+        return Err(anyhow::anyhow!("incorrect domain").into());
+    }
+
+    let response = state
+        .api
+        .trpc_query_single(&types::ProfilePostsInput {
+            project_handle: username.to_string(),
+            page: 0,
+            options: types::ProfilePostsInputOptions {
+                hide_replies: false,
+                hide_shares: false,
+            },
+        })
+        .await?
+        .context("failed to query cohost");
+
+    if response.is_err() {
+        return Err(ErrorWithStatus {
+            status: StatusCode::NOT_FOUND,
+            message: "no such user".to_string(),
+        }
+        .into());
+    }
+    Ok(Json(WebFinger::with_cohost_handle(username, &state.domain)))
 }
