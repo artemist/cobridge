@@ -1,7 +1,7 @@
 use axum::response::IntoResponse;
 use hyper::StatusCode;
 use std::fmt::Display;
-use tracing::warn;
+use tracing::error;
 
 pub type ResponseResult<T> = std::result::Result<T, ResponseError>;
 pub struct ResponseError(anyhow::Error);
@@ -23,8 +23,8 @@ impl IntoResponse for ResponseError {
         match self.0.downcast::<ErrorWithStatus>() {
             Ok(err) => err.into_response(),
             Err(err) => {
-                warn!(
-                    "Internal server error, backtrace {}",
+                error!(
+                    "internal server error. chain:\n{}",
                     err.chain()
                         .map(|cause| cause.to_string())
                         .collect::<Vec<_>>()

@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use super::types::{CohostError, TrpcInput};
 use crate::cohost::types;
 use anyhow::Context;
@@ -12,7 +10,8 @@ use hyper_rustls::{HttpsConnector, HttpsConnectorBuilder};
 use scraper::Selector;
 use serde::Serialize;
 use serde_json::{json, Value};
-use tracing::info;
+use std::str::FromStr;
+use tracing::{debug, instrument};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -53,17 +52,14 @@ impl CohostApi {
         builder
     }
 
+    #[instrument(skip(self), err)]
     pub async fn trpc_query(
         &self,
         queries: Vec<&str>,
         batch: bool,
         input: &Value,
     ) -> anyhow::Result<Value> {
-        info!(
-            "Making TRPC request, queries: {:?}, batch: {}, input: {:#?}",
-            queries, batch, input
-        );
-
+        debug!("querying trpc");
         let path = format!(
             "/api/v1/trpc/{}?batch={}&input={}",
             queries.join(","),
@@ -120,12 +116,9 @@ impl CohostApi {
         }
     }
 
+    #[instrument(skip(self), err)]
     pub async fn query_loader_state(&self, path_and_query: &str) -> anyhow::Result<Value> {
-        info!(
-            "querying loader state from html, path: https://cohost.org{}",
-            path_and_query
-        );
-
+        debug!("querying loader state");
         let uri = Uri::builder()
             .scheme("https")
             .authority("cohost.org")

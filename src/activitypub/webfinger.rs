@@ -104,3 +104,14 @@ pub async fn handle_webfinger(
         .into()),
     }
 }
+
+pub async fn handle_host_meta(state: Extension<Arc<State>>) -> String {
+    format!(
+        r#"<?xml version="1.0" encoding="UTF-8"?>
+<XRD xmlns="http://docs.oasis-open.org/ns/xri/xrd-1.0">
+  <Link rel="lrdd" template="https://{}/.well-known/webfinger?resource={{uri}}"/>
+</XRD>
+"#,
+        state.domain
+    )
+}

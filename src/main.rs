@@ -9,7 +9,7 @@ use structopt::StructOpt;
 use tracing::info;
 
 use crate::activitypub::server::State;
-use crate::activitypub::webfinger::handle_webfinger;
+use crate::activitypub::webfinger::{handle_webfinger, handle_host_meta};
 
 mod activitypub;
 mod cohost;
@@ -48,6 +48,7 @@ async fn main() -> anyhow::Result<()> {
 
     let app = Router::new()
         .route("/.well-known/webfinger", get(handle_webfinger))
+        .route("/.well-known/host-meta", get(handle_host_meta))
         .layer(Extension(state));
 
     axum::Server::bind(&socket_addr)
