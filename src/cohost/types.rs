@@ -61,7 +61,7 @@ pub enum AvatarShape {
     CapsuleSmall,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 /// Visibility of a project's posts
 pub enum Privacy {

@@ -103,7 +103,7 @@ impl CohostApi {
         let response_0 = response_raw
             .as_array_mut()
             .and_then(|obj| obj.first_mut())
-            .ok_or(anyhow::anyhow!("no response given"))?;
+            .ok_or_else(|| anyhow::anyhow!("no response given"))?;
 
         match serde_json::from_value(response_0.take())
             .context("failed to parse success or error")?

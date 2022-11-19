@@ -76,13 +76,13 @@ pub async fn handle_webfinger(
     let (scheme, qualified_user) = query
         .resource
         .split_once(':')
-        .ok_or(anyhow::anyhow!("no scheme"))?;
+        .ok_or_else(|| anyhow::anyhow!("no scheme"))?;
     if scheme != "acct" {
         return Err(anyhow::anyhow!("incorrect scheme").into());
     }
     let (username, domain) = qualified_user
         .split_once('@')
-        .ok_or(anyhow::anyhow!("no domain"))?;
+        .ok_or_else(|| anyhow::anyhow!("no domain"))?;
     if domain != state.domain {
         return Err(anyhow::anyhow!("incorrect domain").into());
     }
