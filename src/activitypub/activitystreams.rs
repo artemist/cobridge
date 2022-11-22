@@ -1,7 +1,5 @@
-use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
-
 use crate::cohost::types::{Privacy, Project};
+use serde::{Deserialize, Serialize};
 
 /// ActivityStreams types, as structures so that you can use serde to
 /// serialize and deserialize the types
@@ -45,16 +43,35 @@ impl Endpoints {
     }
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct PublicKey {
+    pub id: String,
+    pub owner: String,
+    pub public_key_pem: String,
+}
+
 fn _default_false() -> bool {
     false
 }
 fn _default_true() -> bool {
     true
 }
+fn _default_context() -> Vec<String> {
+    vec![
+        "https://w3.org/ns/activitystreams".to_string(),
+        "https://w3id.org/security/v1".to_string(),
+    ]
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ActorPage {
+    /// The context, as defined by JSON-LD. We don't
+    /// care about this when deserializing since we should
+    /// have already reduced it
+    #[serde(rename = "@context", default = "_default_context", skip_deserializing)]
+    pub context: Vec<String>,
     pub id: String,
     #[serde(rename = "type")]
     pub actor_type: ActorType,
@@ -77,6 +94,7 @@ pub struct ActorPage {
     pub manually_approves_followers: bool,
     #[serde(default = "_default_true")]
     pub discoverable: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub published: Option<chrono::DateTime<chrono::Utc>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub devices: Option<String>,
@@ -91,6 +109,7 @@ pub struct ActorPage {
 impl ActorPage {
     pub fn with_project(domain: &str, project: &Project) -> Self {
         Self {
+            context: _default_context(),
             id: format!("https://{}/users/{}", domain, &project.handle),
             actor_type: ActorType::Person,
             following: format!("https://{}/users/{}/following", domain, &project.handle),
@@ -100,7 +119,7 @@ impl ActorPage {
             liked: None,
             featured: None,
             featured_tags: None,
-            preferred_username: project.display_name.to_string(),
+            preferred_username: project.handle.to_string(),
             name: project.display_name.to_string(),
             summary: project.headline.to_string(),
             url: None,
@@ -113,20 +132,4 @@ impl ActorPage {
             endpoints: Endpoints::default(),
         }
     }
-}
-
-pub fn serialize_with_context<T: Serialize>(obj: T) -> anyhow::Result<Value> {
-    let mut value = serde_json::to_value(obj)?;
-    if let Some(dict) = value.as_object_mut() {
-        dict.insert(
-            "@context".to_string(),
-            json!([
-                "https://w3.org/ns/activitystreams",
-                "https://w3id.org/security/v1"
-            ]),
-        );
-    } else {
-        anyhow::bail!("Not an object");
-    }
-    Ok(value)
 }
